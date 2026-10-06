@@ -12,10 +12,16 @@
 ### Tech Stack
 
 <sub>BACKEND</sub><br/>
-<img src="https://skillicons.dev/icons?i=java,spring,hibernate,mysql,redis" />
+<img src="https://skillicons.dev/icons?i=java,spring,fastapi,js" />
 
-<sub>DEVOPS · TOOLS</sub><br/>
-<img src="https://skillicons.dev/icons?i=docker,aws,githubactions,idea,postman,git" />
+<sub>DATABASE</sub><br/>
+<img src="https://skillicons.dev/icons?i=mysql,postgres,redis" />
+
+<sub>DEVOPS · INFRA</sub><br/>
+<img src="https://skillicons.dev/icons?i=aws,docker,githubactions" />
+
+<sub>TOOLS</sub><br/>
+<img src="https://skillicons.dev/icons?i=github,idea,vscode,eclipse" />
 
 ### Contributions
 
