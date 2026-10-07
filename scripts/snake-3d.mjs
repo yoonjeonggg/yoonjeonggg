@@ -142,7 +142,7 @@ function render(data) {
   ];
 
   // curated palette instead of GitHub's language colors: most-used language gets the first color
-  const PALETTE = (process.env.BLOCK_COLORS || "#ff7eb3,#ffb38a,#ffe28a,#b8a4ff,#8ee8d0").split(",");
+  const PALETTE = (process.env.BLOCK_COLORS || "#ff85a8,#ffd6a5,#a0e7ff,#cdb4ff,#b9fbc0").split(",");
   const LANG_COLOR = {};
   data.langs.forEach((l, k) => (LANG_COLOR[l.name] = PALETTE[k % PALETTE.length]));
   data.langs.forEach(l => (l.color = LANG_COLOR[l.name]));
