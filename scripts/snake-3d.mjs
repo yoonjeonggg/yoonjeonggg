@@ -19,7 +19,7 @@ async function fetchData() {
       contributionCalendar{ totalContributions weeks{ contributionDays{ contributionCount date weekday } } }
       commitContributionsByRepository(maxRepositories:100){
         repository{ primaryLanguage{ name color } }
-        contributions{ totalCount }
+        contributions(first:100){ totalCount nodes{ occurredAt commitCount } }
       }
     }
     repositories(first:100, ownerAffiliations:OWNER, isFork:false){ nodes{ stargazerCount forkCount } }
@@ -32,15 +32,26 @@ async function fetchData() {
   const json = await res.json();
   if (json.errors) throw new Error(JSON.stringify(json.errors));
   const u = json.data.user, cc = u.contributionsCollection;
-  const langMap = {};
+  const langMap = {}, byDay = {};
   for (const r of cc.commitContributionsByRepository) {
     const l = r.repository.primaryLanguage;
     if (!l) continue;
     langMap[l.name] ??= { name: l.name, color: l.color || "#888", value: 0 };
     langMap[l.name].value += r.contributions.totalCount;
+    for (const n of r.contributions.nodes) {
+      const day = n.occurredAt.slice(0, 10);
+      (byDay[day] ??= {})[l.name] = (byDay[day][l.name] || 0) + n.commitCount;
+    }
   }
+  // the language you committed in most on each day colors that day's block
+  const dayLang = d => {
+    const m = byDay[d];
+    if (!m) return null;
+    const name = Object.keys(m).sort((x, y) => m[y] - m[x])[0];
+    return name;
+  };
   return {
-    weeks: cc.contributionCalendar.weeks.map(w => w.contributionDays.map(d => ({ count: d.contributionCount, date: d.date, weekday: d.weekday }))),
+    weeks: cc.contributionCalendar.weeks.map(w => w.contributionDays.map(d => ({ count: d.contributionCount, date: d.date, weekday: d.weekday, lang: dayLang(d.date) }))),
     total: cc.contributionCalendar.totalContributions,
     radar: {
       Commit: cc.totalCommitContributions + cc.restrictedContributionsCount,
@@ -70,7 +81,8 @@ function sampleData() {
       const c = r < 0.32 - busy ? 0 : Math.floor(Math.pow(rnd(), 1.8) * 14) + 1;
       total += c;
       const d = new Date(start.getTime() + (i * 7 + j) * 864e5);
-      days.push({ count: c, date: d.toISOString().slice(0, 10), weekday: j });
+      const lr = rnd(), lang = c === 0 ? null : lr < .6 ? "Java" : lr < .75 ? "TypeScript" : lr < .85 ? "Python" : lr < .9 ? "JavaScript" : null;
+      days.push({ count: c, date: d.toISOString().slice(0, 10), weekday: j, lang });
     }
     weeks.push(days);
   }
@@ -81,14 +93,18 @@ function sampleData() {
       { name: "Java", color: "#b07219", value: 68 },
       { name: "TypeScript", color: "#3178c6", value: 14 },
       { name: "JavaScript", color: "#f1e05a", value: 8 },
-      { name: "HTML", color: "#e34c26", value: 6 },
-      { name: "Dockerfile", color: "#384d54", value: 4 },
+      { name: "Python", color: "#3572A5", value: 10 },
     ],
     stars: 12, forks: 3,
   };
 }
 
 // ---------------------------------------------------------------- helpers
+const OTHER = "#4a5168";   // days with PRs / issues / private work (no language info)
+const mixc = (c1, c2, u) => "#" + [0, 1, 2].map(n => {
+  const x = parseInt(c1.slice(1 + 2 * n, 3 + 2 * n), 16), y = parseInt(c2.slice(1 + 2 * n, 3 + 2 * n), 16);
+  return Math.round(x + (y - x) * u).toString(16).padStart(2, "0");
+}).join("");
 const f = n => (Math.round(n * 10) / 10).toString();
 const P = pts => pts.map(([x, y]) => `${f(x)},${f(y)}`).join(" ");
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
@@ -125,8 +141,13 @@ function render(data) {
     [[x, y + 2 * b - h], [x + a, y + b - h], [x + a, y + b], [x, y + 2 * b]],
   ];
 
+  // curated palette instead of GitHub's language colors: most-used language gets the first color
+  const PALETTE = (process.env.BLOCK_COLORS || "#ff7eb3,#ffb38a,#ffe28a,#b8a4ff,#8ee8d0").split(",");
+  const LANG_COLOR = {};
+  data.langs.forEach((l, k) => (LANG_COLOR[l.name] = PALETTE[k % PALETTE.length]));
+  data.langs.forEach(l => (l.color = LANG_COLOR[l.name]));
   const cells = [];
-  data.weeks.forEach((w, i) => w.forEach(d => cells.push({ i, j: d.weekday, c: d.count, h: height(d.count) })));
+  data.weeks.forEach((w, i) => w.forEach(d => cells.push({ i, j: d.weekday, c: d.count, h: height(d.count), lang: d.lang })));
 
   // --- snake route: eat blocks from the front (newest) to the back, diagonal by diagonal,
   //     so every block in front of the snake is already flat (correct occlusion).
@@ -235,8 +256,8 @@ function render(data) {
     const flat = faces(x, y, 0);
     const tile = `<polygon points="${P(flat[0])}" fill="#1a1c2b"/>`;
     if (c.c === 0) return tile;
-    const hue = hueAt(c.i / Math.max(1, W - 1));
-    const cols = [hsl(hue, 62, 60), hsl(hue, 52, 44), hsl(hue, 52, 33)];
+    const base = (c.lang && LANG_COLOR[c.lang]) || OTHER;
+    const cols = [base, mixc(base, "#000000", 0.25), mixc(base, "#000000", 0.45)];
     const full = faces(x, y, c.h);
     const kt = `0;${f4(c.s0 / T)};${f4(c.s1 / T)};${f4(regrowAt)};1`;
     const spl = `calcMode="spline" keySplines="0 0 1 1;.5 0 .5 1;0 0 1 1;.5 0 .5 1"`;
@@ -319,8 +340,9 @@ function render(data) {
   });
 
   // --- donut
-  let langs = data.langs.slice(0, 5);
-  const rest = data.langs.slice(5).reduce((s, l) => s + l.value, 0);
+  const lsum = data.langs.reduce((s, l) => s + l.value, 0) || 1;
+  let langs = data.langs.filter(l => l.value / lsum >= 0.01).slice(0, 5);
+  const rest = lsum - langs.reduce((s, l) => s + l.value, 0);
   if (rest > 0) langs.push({ name: "other", color: "#444a5a", value: rest });
   const sum = langs.reduce((s, l) => s + l.value, 0) || 1;
   const dx = 150, dy = 640, R1 = 92, R0 = 54;
@@ -335,6 +357,8 @@ function render(data) {
     donut += `<rect x="272" y="${578 + k * 28}" width="15" height="15" rx="2" fill="${l.color}"/>` +
       `<text x="296" y="${591 + k * 28}" fill="#ffffff" font-size="16">${esc(l.name)} <tspan fill="#8b92a8">${Math.round(l.value / sum * 100)}%</tspan></text>`;
   });
+  donut += `<rect x="272" y="${578 + langs.length * 28 + 6}" width="15" height="15" rx="2" fill="${OTHER}"/>` +
+    `<text x="296" y="${591 + langs.length * 28 + 6}" fill="#8b92a8" font-size="14">PR · Issue · private</text>`;
 
   const days = data.weeks.flat();
   const range = `${days[0].date} / ${days.at(-1).date}`;
@@ -343,7 +367,6 @@ function render(data) {
   return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${Wd} ${Ht}" width="${Wd}" height="${Ht}" font-family="'Segoe UI', -apple-system, 'Helvetica Neue', Arial, sans-serif">
 <defs>${gdefs}${defs}</defs>
 <rect width="${Wd}" height="${Ht}" fill="#05060f"/>
-<text x="${Wd - 30}" y="40" text-anchor="end" fill="#9aa0b8" font-size="15">${range}</text>
 <g>${blocks}</g>
 <g>${shadows.join("")}</g>
 <g>${slots.join("")}</g>

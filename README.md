@@ -1,30 +1,23 @@
 <div align="center">
 
-<img src="./assets/header.svg" width="100%" />
+---
 
-<br/>
+## 최윤정 [Choi-yoonjeong]
 
-<a href="mailto:yoonjeonggg59@gmail.com"><img src="https://img.shields.io/badge/Gmail-EA4335?style=for-the-badge&logo=gmail&logoColor=white" /></a>
-<a href="https://velog.io/@아이디"><img src="https://img.shields.io/badge/Velog-20C997?style=for-the-badge&logo=velog&logoColor=white" /></a>
-<a href="노션 주소"><img src="https://img.shields.io/badge/Notion-000000?style=for-the-badge&logo=notion&logoColor=white" /></a>
-<a href="https://github.com/yoonjeonggg"><img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" /></a>
+"Backend Developer"
 
-### Tech Stack
+**단순히 동작하는 코드가 아니라, 구조를 고민하고 원인을 추적합니다**
 
-<sub>BACKEND</sub><br/>
-<img src="https://skillicons.dev/icons?i=java,spring,fastapi,js" />
-
-<sub>DATABASE</sub><br/>
-<img src="https://skillicons.dev/icons?i=mysql,postgres,redis" />
-
-<sub>DEVOPS · INFRA</sub><br/>
-<img src="https://skillicons.dev/icons?i=aws,docker,githubactions" />
-
-<sub>TOOLS</sub><br/>
-<img src="https://skillicons.dev/icons?i=github,idea,vscode,eclipse" />
-
-### Contributions
+---
 
 <img src="./profile-3d-snake/snake-3d.svg" width="100%" />
+
+---
+
+## Skills
+
+<img src="https://skillicons.dev/icons?i=java,spring,fastapi,js,mysql,postgres,redis,aws,docker,githubactions,github,idea,vscode,eclipse&perline=7" />
+
+---
 
 </div>
