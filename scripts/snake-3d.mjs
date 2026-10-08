@@ -22,7 +22,9 @@ async function fetchData() {
         contributions(first:100){ totalCount nodes{ occurredAt commitCount } }
       }
     }
-    repositories(first:100, ownerAffiliations:OWNER, isFork:false){ nodes{ stargazerCount forkCount } }
+    repositories(first:100, ownerAffiliations:OWNER, isFork:false){ nodes{ nameWithOwner stargazerCount forkCount } }
+    pullRequests(states:MERGED){ totalCount }
+    repositoriesContributedTo(first:100, includeUserRepositories:true, contributionTypes:[COMMIT, PULL_REQUEST, REPOSITORY]){ nodes{ nameWithOwner isFork stargazerCount forkCount } }
   }}`;
   const res = await fetch("https://api.github.com/graphql", {
     method: "POST",
@@ -61,8 +63,13 @@ async function fetchData() {
       Repo: cc.totalRepositoryContributions,
     },
     langs: Object.values(langMap).sort((x, y) => y.value - x.value),
-    stars: u.repositories.nodes.reduce((s, r) => s + r.stargazerCount, 0),
-    forks: u.repositories.nodes.reduce((s, r) => s + r.forkCount, 0),
+    // stars / forks of your own repos + team/org repos you've contributed to (each repo counted once)
+    ...(() => {
+      const seen = new Map();
+      for (const r of [...u.repositories.nodes, ...u.repositoriesContributedTo.nodes.filter(r => !r.isFork)]) seen.set(r.nameWithOwner, r);
+      const all = [...seen.values()];
+      return { stars: all.reduce((s, r) => s + r.stargazerCount, 0), merged: u.pullRequests.totalCount };
+    })(),
   };
 }
 
@@ -95,7 +102,7 @@ function sampleData() {
       { name: "JavaScript", color: "#f1e05a", value: 8 },
       { name: "Python", color: "#3572A5", value: 10 },
     ],
-    stars: 12, forks: 3,
+    stars: 12, merged: 41,
   };
 }
 
@@ -362,7 +369,8 @@ function render(data) {
 
   const days = data.weeks.flat();
   const range = `${days[0].date} / ${days.at(-1).date}`;
-  const fork = `<g transform="translate(700 788)" fill="none" stroke="#fff" stroke-width="2"><circle cx="4" cy="3" r="2.5"/><circle cx="14" cy="3" r="2.5"/><circle cx="9" cy="19" r="2.5"/><path d="M4 6v3a3 3 0 0 0 3 3h4a3 3 0 0 0 3-3V6M9 12v4"/></g>`;
+  // git-merge icon
+  const mergeIcon = `<g transform="translate(700 787)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="4" r="2.6"/><circle cx="5" cy="20" r="2.6"/><circle cx="17" cy="13" r="2.6"/><path d="M5 6.6v10.8M5 6.6c0 5 4 6.4 9.4 6.4"/></g>`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${Wd} ${Ht}" width="${Wd}" height="${Ht}" font-family="'Segoe UI', -apple-system, 'Helvetica Neue', Arial, sans-serif">
 <defs>${gdefs}${defs}</defs>
@@ -374,7 +382,7 @@ function render(data) {
 <g>${donut}</g>
 <text x="272" y="806" fill="#ffd166" font-size="30" font-weight="700">${data.total.toLocaleString("en-US")}<tspan fill="#ffffff" font-size="19" font-weight="400" dx="10">contributions</tspan></text>
 <text x="590" y="806" fill="#ffffff" font-size="20">★ ${data.stars}</text>
-${fork}<text x="726" y="806" fill="#ffffff" font-size="20">${data.forks}</text>
+${mergeIcon}<text x="728" y="806" fill="#ffffff" font-size="20">${data.merged}<tspan fill="#8b92a8" font-size="15" dx="6">merged PRs</tspan></text>
 </svg>`;
 }
 function f4(n) { return (Math.round(n * 10000) / 10000).toString(); }
