@@ -369,8 +369,12 @@ function render(data) {
 
   const days = data.weeks.flat();
   const range = `${days[0].date} / ${days.at(-1).date}`;
+  // longest run of consecutive days with at least one contribution
+  let streak = 0, run = 0;
+  for (const d of data.weeks.flat()) { run = d.count > 0 ? run + 1 : 0; streak = Math.max(streak, run); }
+  const flame = `<path transform="translate(556 786)" d="M9 0c1 4 6 6 6 12a7 7 0 0 1-14 0c0-3 1.6-5 3.4-6.4C4.6 8 6 9.4 7.6 9.6 6.8 6 7.6 3 9 0z" fill="#ff85a8"/>`;
   // git-merge icon
-  const mergeIcon = `<g transform="translate(700 787)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="4" r="2.6"/><circle cx="5" cy="20" r="2.6"/><circle cx="17" cy="13" r="2.6"/><path d="M5 6.6v10.8M5 6.6c0 5 4 6.4 9.4 6.4"/></g>`;
+  const mergeIcon = `<g transform="translate(740 787)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="4" r="2.6"/><circle cx="5" cy="20" r="2.6"/><circle cx="17" cy="13" r="2.6"/><path d="M5 6.6v10.8M5 6.6c0 5 4 6.4 9.4 6.4"/></g>`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${Wd} ${Ht}" width="${Wd}" height="${Ht}" font-family="'Segoe UI', -apple-system, 'Helvetica Neue', Arial, sans-serif">
 <defs>${gdefs}${defs}</defs>
@@ -381,8 +385,8 @@ function render(data) {
 <g>${radar}</g>
 <g>${donut}</g>
 <text x="272" y="806" fill="#ffd166" font-size="30" font-weight="700">${data.total.toLocaleString("en-US")}<tspan fill="#ffffff" font-size="19" font-weight="400" dx="10">contributions</tspan></text>
-<text x="590" y="806" fill="#ffffff" font-size="20">★ ${data.stars}</text>
-${mergeIcon}<text x="728" y="806" fill="#ffffff" font-size="20">${data.merged}<tspan fill="#8b92a8" font-size="15" dx="6">merged PRs</tspan></text>
+${flame}<text x="582" y="806" fill="#ffffff" font-size="20">${streak}<tspan fill="#8b92a8" font-size="15" dx="6">day streak</tspan></text>
+${mergeIcon}<text x="768" y="806" fill="#ffffff" font-size="20">${data.merged}<tspan fill="#8b92a8" font-size="15" dx="6">merged PRs</tspan></text>
 </svg>`;
 }
 function f4(n) { return (Math.round(n * 10000) / 10000).toString(); }
